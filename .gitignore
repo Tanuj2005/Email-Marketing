@@ -1,0 +1,16 @@
+# Python-generated files
+
+* text=auto
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
