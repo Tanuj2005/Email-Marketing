@@ -1,13 +1,25 @@
-from fastapi import FastAPI, HTTPException
-import os
-from .routes.auth import router as auth_router  # type: ignore
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .routes.auth import router as auth_router
 
-app = FastAPI()
+app = FastAPI(title="Email Marketing OAuth Service")
 
-app.include_router(auth_router)
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(auth_router, tags=["authentication"])
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Email Marketing OAuth Service"}
 
-
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
