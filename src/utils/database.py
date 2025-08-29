@@ -95,6 +95,20 @@ class SupabaseClient:
             logger.error(f"Error inserting OAuth tokens: {e}")
             raise
     
+    async def update_access_token(self, user_id: str, access_token: str, access_token_expiry) -> bool:
+        """Update access token for a user"""
+        try:
+            result = self.client.table('oauth_tokens').update({
+                'access_token': access_token,
+                'access_token_expiry': access_token_expiry.isoformat()
+            }).eq('user_id', user_id).execute()
+            
+            return len(result.data) > 0
+            
+        except Exception as e:
+            logger.error(f"Error updating access token: {e}")
+            raise
+    
     async def insert_session(self, session_id: str, user_id: str, token_id: int, is_active: bool = True) -> Dict[str, Any]:
         """Insert session using Supabase client"""
         try:

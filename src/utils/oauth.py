@@ -66,6 +66,20 @@ class OAuthManager:
         resp.raise_for_status()
         return resp.json()
     
+    async def refresh_access_token(self, refresh_token: str) -> Dict:
+        """Refresh access token using refresh token"""
+        data = {
+            "refresh_token": refresh_token,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "grant_type": "refresh_token",
+        }
+        
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(TOKEN_ENDPOINT, data=data)
+        resp.raise_for_status()
+        return resp.json()
+    
     async def get_user_info(self, access_token: str) -> Dict:
         """Get user info from Google"""
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -108,6 +122,40 @@ class OAuthManager:
         await db.insert_session(session_id, user_id, token_id, True)
         
         return session_id
+    
+    async def get_valid_access_token(self, session_id: str) -> Optional[str]:
+        """Get valid access token, refreshing if necessary"""
+        session_info = await db.get_session_info(session_id)
+        
+        if not session_info:
+            return None
+        
+        # Decrypt tokens
+        access_token = security.decrypt_token(session_info['access_token'])
+        refresh_token = security.decrypt_token(session_info['refresh_token']) if session_info['refresh_token'] else None
+        
+        # Check if access token is expired
+        access_token_expiry = datetime.fromisoformat(session_info['access_token_expiry'].replace('Z', '+00:00'))
+        if datetime.utcnow() > access_token_expiry.replace(tzinfo=None):
+            if not refresh_token:
+                return None  # Can't refresh without refresh token
+            
+            # Refresh the token
+            try:
+                new_tokens = await self.refresh_access_token(refresh_token)
+                
+                # Update tokens in database
+                new_access_token_expiry = datetime.utcnow() + timedelta(seconds=int(new_tokens.get('expires_in', 3600)))
+                encrypted_new_access_token = security.encrypt_token(new_tokens['access_token'])
+                
+                await db.update_access_token(session_info['user_id'], encrypted_new_access_token, new_access_token_expiry)
+                
+                return new_tokens['access_token']
+            except Exception as e:
+                # Refresh failed
+                return None
+        
+        return access_token
     
     async def get_session_info(self, session_id: str) -> Optional[Dict]:
         """Get session information"""

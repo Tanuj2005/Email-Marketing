@@ -1,9 +1,19 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import JSONResponse, RedirectResponse
 from ..utils.oauth import oauth_manager
+from ..utils.sheets import sheets_service
 from ..utils.config import FRONTEND_URL, SESSION_COOKIE_NAME, SESSION_COOKIE_MAX_AGE
+from ..models.sheets import SheetDataRequest, SheetDataResponse, SheetInfoResponse, ErrorResponse
 
 router = APIRouter()
+
+async def get_current_session(request: Request) -> str:
+    """Dependency to get current session ID"""
+    # session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    session_id = "417b90a7-e1c0-4d99-80bc-7f6ecae4dbb0"
+    if not session_id:
+        raise HTTPException(status_code=401, detail="No session found")
+    return session_id
 
 @router.get("/login")
 async def login():
@@ -106,3 +116,71 @@ async def get_current_user(request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user info: {str(e)}")
+
+@router.post("/sheets/data", response_model=SheetDataResponse)
+async def get_sheet_data(
+    request_data: SheetDataRequest,
+    session_id: str = Depends(get_current_session)
+):
+    """
+    Retrieve data from Google Sheets
+    
+    This endpoint fetches data from a Google Spreadsheet using the user's access token.
+    The access token is automatically refreshed if it has expired.
+    """
+    try:
+        # Get valid access token (will refresh if needed)
+        access_token = await oauth_manager.get_valid_access_token(session_id)
+        if not access_token:
+            raise HTTPException(
+                status_code=401, 
+                detail="Unable to get valid access token. Please re-authenticate."
+            )
+        
+        # Fetch sheet data
+        sheet_data = await sheets_service.get_sheet_data(
+            access_token=access_token,
+            spreadsheet_id=request_data.spreadsheet_id,
+            range_name=request_data.range_name,
+            max_rows=request_data.max_rows
+        )
+        
+        return SheetDataResponse(**sheet_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch sheet data: {str(e)}")
+
+@router.get("/sheets/{spreadsheet_id}/info", response_model=SheetInfoResponse)
+async def get_sheet_info(
+    spreadsheet_id: str,
+    session_id: str = Depends(get_current_session)
+):
+    """
+    Get information about a Google Spreadsheet
+    
+    This endpoint fetches metadata about a Google Spreadsheet including
+    title, sheets, and basic properties.
+    """
+    try:
+        # Get valid access token (will refresh if needed)
+        access_token = await oauth_manager.get_valid_access_token(session_id)
+        if not access_token:
+            raise HTTPException(
+                status_code=401, 
+                detail="Unable to get valid access token. Please re-authenticate."
+            )
+        
+        # Fetch sheet info
+        sheet_info = await sheets_service.get_sheet_info(
+            access_token=access_token,
+            spreadsheet_id=spreadsheet_id
+        )
+        
+        return SheetInfoResponse(**sheet_info)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch sheet info: {str(e)}")

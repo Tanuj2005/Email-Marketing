@@ -23,7 +23,8 @@ OAUTH_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
     "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send"
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/spreadsheets"
 ]
 
 # Supabase
@@ -38,4 +39,5 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 SESSION_COOKIE_NAME = "session_id"
 SESSION_COOKIE_MAX_AGE = 86400 * 7  # 7 days
 
-
+# Google Sheets API
+GOOGLE_SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets"
