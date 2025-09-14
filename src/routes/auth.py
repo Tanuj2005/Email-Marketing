@@ -2,18 +2,25 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import JSONResponse, RedirectResponse
 from ..utils.oauth import oauth_manager
 from ..utils.sheets import sheets_service
+from ..utils.scraper import scraper_service
 from ..utils.config import FRONTEND_URL, SESSION_COOKIE_NAME, SESSION_COOKIE_MAX_AGE
-from ..models.sheets import SheetDataRequest, SheetDataResponse, SheetInfoResponse, ErrorResponse
+from ..models.sheets import (
+    SheetDataRequest, SheetDataResponse, SheetInfoResponse, ErrorResponse,
+    ScrapeRequest, ScrapeResponse, ScrapedWebsiteData
+)
+import time
 
 router = APIRouter()
 
 async def get_current_session(request: Request) -> str:
     """Dependency to get current session ID"""
     # session_id = request.cookies.get(SESSION_COOKIE_NAME)
-    session_id = "417b90a7-e1c0-4d99-80bc-7f6ecae4dbb0"
+    session_id = "689c999f-b423-4f0b-a39a-47bd948ee8e4"  # Remove hardcoded session
     if not session_id:
         raise HTTPException(status_code=401, detail="No session found")
     return session_id
+
+# ... existing endpoints remain the same ...
 
 @router.get("/login")
 async def login():
@@ -64,7 +71,7 @@ async def oauth_callback(request: Request, response: Response):
             value=session_id,
             max_age=SESSION_COOKIE_MAX_AGE,
             httponly=True,
-            secure=True,  # Only over HTTPS
+            secure=False,  # Set to False for localhost development
             samesite="lax"
         )
         
@@ -184,3 +191,134 @@ async def get_sheet_info(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch sheet info: {str(e)}")
+
+# New scraping endpoints
+@router.post("/sheets/scrape", response_model=ScrapeResponse)
+async def scrape_websites_from_sheet(
+    request_data: ScrapeRequest,
+    session_id: str = Depends(get_current_session)
+):
+    """
+    Scrape websites from URLs in a Google Sheet column
+    
+    This endpoint:
+    1. Fetches data from the specified Google Sheet
+    2. Extracts URLs from the specified column
+    3. Scrapes each website concurrently
+    4. Returns structured data from all websites
+    """
+    try:
+        start_time = time.time()
+        
+        # Get valid access token
+        access_token = await oauth_manager.get_valid_access_token(session_id)
+        if not access_token:
+            raise HTTPException(
+                status_code=401, 
+                detail="Unable to get valid access token. Please re-authenticate."
+            )
+        
+        # Fetch sheet data
+        sheet_data = await sheets_service.get_sheet_data(
+            access_token=access_token,
+            spreadsheet_id=request_data.spreadsheet_id,
+            range_name=request_data.range_name
+        )
+        
+        if not sheet_data.get("values"):
+            raise HTTPException(status_code=400, detail="No data found in the specified range")
+        
+        # Find the column index for the URL column
+        headers = sheet_data["values"][0] if sheet_data["values"] else []
+        url_column_index = None
+        
+        for i, header in enumerate(headers):
+            if str(header).strip().lower() == request_data.url_column_name.strip().lower():
+                url_column_index = i
+                break
+        
+        if url_column_index is None:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Column '{request_data.url_column_name}' not found. Available columns: {headers}"
+            )
+        
+        # Extract URLs from the specified column
+        urls = []
+        for row_index, row in enumerate(sheet_data["values"][1:], start=1):  # Skip header row
+            if url_column_index < len(row) and row[url_column_index]:
+                url = str(row[url_column_index]).strip()
+                if url:
+                    urls.append(url)
+        
+        if not urls:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"No URLs found in column '{request_data.url_column_name}'"
+            )
+        
+        # Scrape all websites
+        scraped_results = await scraper_service.scrape_multiple_websites(
+            urls=urls,
+            max_concurrent=request_data.max_concurrent
+        )
+        
+        # Convert to response format
+        scraped_data = []
+        successful_scrapes = 0
+        failed_scrapes = 0
+        
+        for result in scraped_results:
+            scraped_data.append(ScrapedWebsiteData(**result))
+            if result.get("success"):
+                successful_scrapes += 1
+            else:
+                failed_scrapes += 1
+        
+        processing_time = time.time() - start_time
+        
+        return ScrapeResponse(
+            spreadsheet_id=request_data.spreadsheet_id,
+            spreadsheet_title=sheet_data.get("spreadsheet_title", "Unknown"),
+            url_column_name=request_data.url_column_name,
+            total_urls=len(urls),
+            successful_scrapes=successful_scrapes,
+            failed_scrapes=failed_scrapes,
+            scraped_data=scraped_data,
+            processing_time_seconds=round(processing_time, 2)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to scrape websites: {str(e)}")
+
+@router.post("/scrape/single")
+async def scrape_single_website(
+    url: str,
+    session_id: str = Depends(get_current_session)
+):
+    """
+    Scrape a single website
+    
+    This endpoint scrapes a single website and returns structured data.
+    Useful for testing or one-off scraping.
+    """
+    try:
+        # Verify user is authenticated
+        access_token = await oauth_manager.get_valid_access_token(session_id)
+        if not access_token:
+            raise HTTPException(
+                status_code=401, 
+                detail="Unable to get valid access token. Please re-authenticate."
+            )
+        
+        # Scrape the website
+        scraped_result = await scraper_service.scrape_website(url)
+        
+        return ScrapedWebsiteData(**scraped_result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to scrape website: {str(e)}")
