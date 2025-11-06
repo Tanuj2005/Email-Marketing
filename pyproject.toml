@@ -1,7 +1,7 @@
 [project]
 name = "hyperpersonalized-email-marketing"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-Powered Hyper-Personalized Email Marketing Platform"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -18,4 +18,9 @@ dependencies = [
     "aiofiles>=23.2.1",
     "lxml>=4.9.3",
     "requests>=2.31.0",
+    "google-generativeai>=0.8.3",
+    "google-auth>=2.35.0",
+    "google-auth-oauthlib>=1.2.1",
+    "google-auth-httplib2>=0.2.0",
+    "email-validator>=2.3.0",
 ]
