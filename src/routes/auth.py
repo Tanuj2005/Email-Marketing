@@ -14,8 +14,8 @@ router = APIRouter()
 
 async def get_current_session(request: Request) -> str:
     """Dependency to get current session ID"""
-    # session_id = request.cookies.get(SESSION_COOKIE_NAME)
-    session_id = "689c999f-b423-4f0b-a39a-47bd948ee8e4"  # Remove hardcoded session
+    session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    # session_id = "689c999f-b423-4f0b-a39a-47bd948ee8e4"  # Remove hardcoded session
     if not session_id:
         raise HTTPException(status_code=401, detail="No session found")
     return session_id
