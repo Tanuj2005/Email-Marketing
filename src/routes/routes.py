@@ -7,7 +7,7 @@ from ..utils.gemini_service import gemini_service
 from ..utils.gmail_service import gmail_service
 from ..utils.config import FRONTEND_URL, SESSION_COOKIE_NAME, SESSION_COOKIE_MAX_AGE
 from ..utils.database import db
-from ..models.sheets import (
+from ..models.models import (
     EmailCampaignRequest, EmailCampaignResponse,
 )
 import time
