@@ -150,14 +150,6 @@ src/
 | POST | `/logout` | End user session |
 | POST | `/campaign/send` | Execute email campaign |
 
-## Configuration Options
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `max_concurrent_scrapes` | 5 | Parallel website scrapes |
-| `max_concurrent_emails` | 3 | Parallel email sends |
-| `delay_between_emails` | 1.0s | Rate limiting delay |
-
 ## Tech Stack
 
 - **Backend:** FastAPI, Python 3.12
