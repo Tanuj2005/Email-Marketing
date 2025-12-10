@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routes.auth import router as auth_router
 
 app = FastAPI(
-    title="Email Marketing OAuth Service",
-    description="OAuth service with Google Sheets integration",
+    title="personalized Email marketing",
+    description="mail marketing campaign service with Ai personalization",
     version="1.0.0"
 )
 
@@ -19,11 +19,3 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router, tags=["authentication"])
-
-@app.get("/")
-async def root():
-    return {"message": "Email Marketing OAuth Service with Google Sheets"}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
