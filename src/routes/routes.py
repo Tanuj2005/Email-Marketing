@@ -8,8 +8,6 @@ from ..utils.gmail_service import gmail_service
 from ..utils.config import FRONTEND_URL, SESSION_COOKIE_NAME, SESSION_COOKIE_MAX_AGE
 from ..utils.database import db
 from ..models.sheets import (
-    SheetDataRequest, SheetDataResponse, SheetInfoResponse,
-    ScrapeRequest, ScrapeResponse, ScrapedWebsiteData,
     EmailCampaignRequest, EmailCampaignResponse,
 )
 import time
