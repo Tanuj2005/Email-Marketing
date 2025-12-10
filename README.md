@@ -1,3 +1,7 @@
+### Frontend
+This is the frontend codebase for the project:  
+👉 **[Email Marketing Frontend](https://github.com/Tanuj2005/Email-Marketing-Frontend)**
+
 # AI-Powered Hyper-Personalized Email Marketing Platform
 
 An intelligent B2B email outreach automation system that scrapes prospect websites, generates hyper-personalized emails using AI, and sends them automatically—all from a simple Google Sheets input.
