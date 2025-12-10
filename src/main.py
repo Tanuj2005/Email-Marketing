@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes.auth import router as auth_router
+from .routes.routes import router 
 
 app = FastAPI(
     title="personalized Email marketing",
@@ -18,4 +18,4 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth_router, tags=["authentication"])
+app.include_router(router, tags=["authentication"])
