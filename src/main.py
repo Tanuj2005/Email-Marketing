@@ -18,4 +18,4 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(router, tags=["authentication"])
+app.include_router(router)

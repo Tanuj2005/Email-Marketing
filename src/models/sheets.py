@@ -20,10 +20,6 @@ class SheetInfoResponse(BaseModel):
     locale: str
     sheets: List[dict]
 
-class ErrorResponse(BaseModel):
-    error: str
-    detail: str
-
 # Scraping models
 class ScrapeRequest(BaseModel):
     spreadsheet_id: str = Field(..., description="Google Spreadsheet ID")
@@ -68,21 +64,6 @@ class EmailCampaignRequest(BaseModel):
     max_concurrent_scrapes: int = Field(default=5, ge=1, le=10)
     max_concurrent_emails: int = Field(default=3, ge=1, le=5)
     delay_between_emails: float = Field(default=1.0, ge=0.5, le=5.0)
-
-class EmailGenerationResult(BaseModel):
-    recipient_email: EmailStr
-    company_name: str
-    subject: str
-    body: str
-    generated_successfully: bool
-    error: Optional[str] = None
-
-class EmailSendResult(BaseModel):
-    recipient_email: EmailStr
-    company_name: str
-    success: bool
-    message_id: Optional[str] = None
-    error: Optional[str] = None
 
 class EmailCampaignResponse(BaseModel):
     spreadsheet_id: str
